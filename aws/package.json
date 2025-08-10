@@ -1,0 +1,9 @@
+{
+  "name": "aws-backend",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {},
+  "dependencies": {
+    "dotenv": "^17.2.1"
+  }
+}
