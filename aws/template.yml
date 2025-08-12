@@ -1,0 +1,180 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Globals:
+  Function:
+    Timeout: 15
+    MemorySize: 512
+    Runtime: nodejs18.x
+    Environment:
+      Variables:
+        PINECONE_API_KEY: !Ref PineconeApiKey
+        PINECONE_INDEX_NAME: !Ref PineconeIndexName
+        PINECONE_ENVIRONMENT: !Ref PineconeEnvironment
+        POLAR_API_KEY: !Ref PolarApiKey
+        USERS_TABLE: !Sub "zuno-users-${AWS::Region}-${AWS::AccountId}"
+        APIKEYS_TABLE: !Sub "zuno-apikeys-${AWS::Region}-${AWS::AccountId}"
+        PROJECTS_TABLE: !Sub "zuno-projects-${AWS::Region}-${AWS::AccountId}"
+        S3_BUCKET_NAME: !Sub "zuno-bucket-${AWS::Region}-${AWS::AccountId}"
+
+Resources:
+  AiChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: aws/handlers/aiChatHandler.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /api/chat/{projectId}
+            Method: post
+            Cors: true
+
+  AiStreamFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: aws/handlers/aiStreamHandler.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /api/chat/{projectId}/stream
+            Method: post
+            Cors: true
+
+  ContextScrapeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: aws/handlers/contextScrapeHandler.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /api/projects/{projectId}/context/scrape
+            Method: post
+            Cors: true
+
+  ProjectsGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: aws/handlers/projectsGetHandler.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /api/projects
+            Method: get
+            Cors: true
+
+  ProjectsPostFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: aws/handlers/projectsPostHandler.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /api/projects
+            Method: post
+            Cors: true
+
+  ProjectsDetailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: aws/handlers/projectsDetailHandler.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /api/projects/{projectId}
+            Method: get
+            Cors: true
+
+  ProjectsUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: aws/handlers/projectsUpdateHandler.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /api/projects/{projectId}
+            Method: patch
+            Cors: true
+
+  ProjectsDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: aws/handlers/projectsDeleteHandler.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /api/projects/{projectId}
+            Method: delete
+            Cors: true
+
+  ScrapingDockerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      ImageUri: <YOUR_ECR_REPOSITORY_URI>  # Replace after you push Docker image to ECR
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /api/scraper/run
+            Method: post
+            Cors: true
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "zuno-users-${AWS::Region}-${AWS::AccountId}"
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ApiKeysTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "zuno-apikeys-${AWS::Region}-${AWS::AccountId}"
+      AttributeDefinitions:
+        - AttributeName: keyId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: keyId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ProjectsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "zuno-projects-${AWS::Region}-${AWS::AccountId}"
+      AttributeDefinitions:
+        - AttributeName: projectId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: projectId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ZunoS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "zuno-bucket-${AWS::Region}-${AWS::AccountId}"
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - '*'
+            AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD

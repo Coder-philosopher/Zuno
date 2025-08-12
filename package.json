@@ -1,0 +1,26 @@
+{
+  "name": "zuno---ai-powered-chatbot",
+  "version": "1.0.0",
+  "description": "Welcome to **Zuno**, an AI-powered chatbot platform designed to deliver intelligent conversational experiences by combining advanced AI, vector search databases, and cloud infrastructure.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Coder-philosopher/Zuno.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Coder-philosopher/Zuno/issues"
+  },
+  "homepage": "https://github.com/Coder-philosopher/Zuno#readme",
+  "dependencies": {
+    "turbo": "^2.5.5"
+  }
+}

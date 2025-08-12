@@ -4,6 +4,18 @@
   "main": "main.js",
   "scripts": {},
   "dependencies": {
-    "dotenv": "^17.2.1"
+    "@aws-sdk/client-dynamodb": "^3.864.0",
+    "@aws-sdk/client-lambda": "^3.864.0",
+    "@aws-sdk/client-s3": "^3.864.0",
+    "@aws-sdk/client-sts": "^3.864.0",
+    "@aws-sdk/lib-dynamodb": "^3.864.0",
+    "@clerk/clerk-sdk-node": "^4.13.23",
+    "@pinecone-database/pinecone": "^6.1.2",
+    "depcheck": "^1.4.7",
+    "dotenv": "^17.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^3.3.2",
+    "pdf-parse": "^1.1.1",
+    "yup": "^1.7.0"
   }
 }
