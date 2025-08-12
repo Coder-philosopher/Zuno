@@ -1,7 +1,7 @@
 
 
 
-# Zuno - AI Powered Chatbot
+# Zuno - AI Powered Chatbot Provider
 
 Welcome to **Zuno**, an AI-powered chatbot platform designed to deliver intelligent conversational experiences by combining advanced AI, vector search databases, and cloud infrastructure.
 
