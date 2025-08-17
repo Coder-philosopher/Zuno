@@ -1,0 +1,10 @@
+name: Github Actions Demo
+run-name: ${{ github.actor }} is testing out
+
+on: [push]
+
+jobs:
+  Explore-Github-Actions:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "running the job on push, while learning GitHub Actions"
