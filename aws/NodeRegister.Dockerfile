@@ -1,8 +1,14 @@
 FROM public.ecr.aws/lambda/nodejs:18
-WORKDIR /app
 
+# Lambda image expects /var/task
+WORKDIR /var/task
+
+# Copy package.json & install dependencies
 COPY package*.json ./
 RUN npm ci --only=production
 
-COPY handlers/registerHandler.js handlers/
-CMD ["handlers/registerHandler.handler"]
+# Copy handler to root of /var/task
+COPY . .
+
+# CMD must be module.function
+CMD ["registerHandler.handler"]

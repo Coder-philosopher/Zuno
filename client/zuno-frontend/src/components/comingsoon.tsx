@@ -7,7 +7,7 @@ import { Tomorrow } from "next/font/google";
 import Link from "next/link";
 import { FaGithub, FaTwitter } from "react-icons/fa";
 
-function Page() {
+function ComingSoon() {
     
 const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -110,4 +110,4 @@ const [email, setEmail] = useState("");
   )
 }
 
-export default Page
+export default ComingSoon

@@ -4,5 +4,5 @@ WORKDIR /var/task
 RUN yum install -y gcc gcc-c++ libffi-devel libxml2-devel libxslt-devel python3-devel
 RUN pip install --upgrade pip && pip install scrapy boto3
 
-COPY handlers/scrapingHandler.py handlers/
-CMD ["handlers/scrapingHandler.handler"]
+COPY . .
+CMD ["scrapingHandler.handler"]

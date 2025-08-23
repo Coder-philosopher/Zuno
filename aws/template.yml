@@ -168,4 +168,4 @@ Parameters:
 Outputs:
   HttpApiUrl:
     Description: Base URL for the HttpApi
-    Value: !Sub "https://${ZunoHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Value: !Ref "ZunoHttpApi"
