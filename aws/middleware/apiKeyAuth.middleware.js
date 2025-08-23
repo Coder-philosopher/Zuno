@@ -1,22 +1,16 @@
-// aws/middleware/apiKeyAuth.middleware.js
 const { AppError } = require('../utils/errorHandler');
-const { validateApiKey } = require('../utils/apiKeyManager');
-const db = require('../services/db'); // You’d implement a DB query here
+const { hashApiKey } = require('../utils/apiKeyManager');
+const db = require('../services/db');
 
 async function apiKeyAuthMiddleware(event) {
-  const apiKey = event.headers['x-api-key'];
+  const apiKey = event.headers?.['x-api-key'];
+  if (!apiKey) throw new AppError("Missing API key", 401);
 
-  if (!apiKey) {
-    throw new AppError("Missing API key", 401);
-  }
+  const hashed = hashApiKey(apiKey);
+  const project = await db.getProjectByApiKeyHash(hashed);
+  if (!project) throw new AppError("Invalid API key", 401);
 
-  // Fetch project by API key hash
-  const stored = await db.getProjectByApiKeyHash(validateApiKey.hashApiKey(apiKey)); 
-  if (!stored) {
-    throw new AppError("Invalid API key", 401);
-  }
-
-  return stored; // Return project info for further processing
+  return project;
 }
 
 module.exports = { apiKeyAuthMiddleware };

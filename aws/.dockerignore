@@ -1,0 +1,7 @@
+node_modules
+.aws-sam
+*.log
+docker
+scripts
+*.tmp
+*.bak

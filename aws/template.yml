@@ -1,141 +1,123 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Transform: 'AWS::Serverless-2016-10-31'
+Transform: AWS::Serverless-2016-10-31
 
 Globals:
   Function:
     Timeout: 15
     MemorySize: 512
-    Runtime: nodejs18.x
     Environment:
       Variables:
+        AWS_REGION: !Ref AWS::Region
         PINECONE_API_KEY: !Ref PineconeApiKey
         PINECONE_INDEX_NAME: !Ref PineconeIndexName
         PINECONE_ENVIRONMENT: !Ref PineconeEnvironment
-        POLAR_API_KEY: !Ref PolarApiKey
-        USERS_TABLE: !Sub "zuno-users-${AWS::Region}-${AWS::AccountId}"
+        GEMINI_API_KEY: !Ref GeminiApiKey
         APIKEYS_TABLE: !Sub "zuno-apikeys-${AWS::Region}-${AWS::AccountId}"
         PROJECTS_TABLE: !Sub "zuno-projects-${AWS::Region}-${AWS::AccountId}"
-        S3_BUCKET_NAME: !Sub "zuno-bucket-${AWS::Region}-${AWS::AccountId}"
+        QUERIES_TABLE: !Sub "zuno-queries-${AWS::Region}-${AWS::AccountId}"
+        USERS_TABLE: !Sub "zuno-users-${AWS::Region}-${AWS::AccountId}"
+        S3_BUCKET_NAME: !Ref ZunoBucket
+        EMBEDDING_LAMBDA_NAME: !Ref EmbeddingFunction
 
 Resources:
-  AiChatFunction:
+  # Shared HTTP API
+  ZunoHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: ["*"]
+        AllowHeaders: ["*"]
+        AllowMethods: [GET, POST, PUT, DELETE, OPTIONS]
+
+  # -------- Lambda Functions (Image-based) --------
+  RegisterFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: aws/handlers/aiChatHandler.handler
+      PackageType: Image
       Events:
-        Api:
-          Type: Api
+        RegisterApi:
+          Type: HttpApi
           Properties:
+            ApiId: !Ref ZunoHttpApi
+            Path: /api/register
+            Method: POST
+    Metadata:
+      DockerTag: ai-register-lambda
+      DockerContext: .
+      Dockerfile: NodeRegister.Dockerfile
+      DockerCMD: ["handlers/registerHandler.handler"]
+    Policies:
+      - DynamoDBCrudPolicy: { TableName: !Ref UsersTable }
+      - DynamoDBCrudPolicy: { TableName: !Ref ProjectsTable }
+      - DynamoDBCrudPolicy: { TableName: !Ref ApiKeysTable }
+      - DynamoDBCrudPolicy: { TableName: !Ref QueriesTable }
+
+  ChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Events:
+        ChatApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ZunoHttpApi
             Path: /api/chat/{projectId}
-            Method: post
-            Cors: true
+            Method: POST
+    Metadata:
+      DockerTag: ai-chat-lambda
+      DockerContext: .
+      Dockerfile: NodeChat.Dockerfile
+      DockerCMD: ["handlers/aiChatHandler.handler"]
+    Policies:
+      - DynamoDBReadPolicy: { TableName: !Ref QueriesTable }
 
-  AiStreamFunction:
+  EmbeddingFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: aws/handlers/aiStreamHandler.handler
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /api/chat/{projectId}/stream
-            Method: post
-            Cors: true
+      PackageType: Image
+      Timeout: 300
+      MemorySize: 1024
+    Metadata:
+      DockerTag: ai-embedding-lambda
+      DockerContext: .
+      Dockerfile: EmbeddingHandler.Dockerfile
+      DockerCMD: ["handlers/embeddingHandler.handler"]
+    Policies:
+      - S3ReadPolicy: { BucketName: !Ref ZunoBucket }
 
-  ContextScrapeFunction:
+  ScrapingFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: aws/handlers/contextScrapeHandler.handler
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /api/projects/{projectId}/context/scrape
-            Method: post
-            Cors: true
+      PackageType: Image
+      Timeout: 300
+      MemorySize: 1024
+    Metadata:
+      DockerTag: ai-scraper-lambda
+      DockerContext: .
+      Dockerfile: PythonScraper.Dockerfile
+      DockerCMD: ["handlers/scrapingHandler.handler"]
+    Policies:
+      - S3WritePolicy: { BucketName: !Ref ZunoBucket }
+      - Statement:
+          Effect: Allow
+          Action: lambda:InvokeFunction
+          Resource: !GetAtt EmbeddingFunction.Arn
 
-  ProjectsGetFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: aws/handlers/projectsGetHandler.handler
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /api/projects
-            Method: get
-            Cors: true
-
-  ProjectsPostFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: aws/handlers/projectsPostHandler.handler
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /api/projects
-            Method: post
-            Cors: true
-
-  ProjectsDetailFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: aws/handlers/projectsDetailHandler.handler
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /api/projects/{projectId}
-            Method: get
-            Cors: true
-
-  ProjectsUpdateFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: aws/handlers/projectsUpdateHandler.handler
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /api/projects/{projectId}
-            Method: patch
-            Cors: true
-
-  ProjectsDeleteFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: aws/handlers/projectsDeleteHandler.handler
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /api/projects/{projectId}
-            Method: delete
-            Cors: true
-
-  ScrapingDockerFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      ImageUri: <YOUR_ECR_REPOSITORY_URI>  # Replace after you push Docker image to ECR
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /api/scraper/run
-            Method: post
-            Cors: true
-
+  # -------- DynamoDB Tables --------
   UsersTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub "zuno-users-${AWS::Region}-${AWS::AccountId}"
-      AttributeDefinitions:
-        - AttributeName: userId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: userId
-          KeyType: HASH
+      AttributeDefinitions: [{ AttributeName: userId, AttributeType: S }]
+      KeySchema: [{ AttributeName: userId, KeyType: HASH }]
+      BillingMode: PAY_PER_REQUEST
+
+  QueriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "zuno-queries-${AWS::Region}-${AWS::AccountId}"
+      AttributeDefinitions: [{ AttributeName: id, AttributeType: S }]
+      KeySchema: [{ AttributeName: id, KeyType: HASH }]
       BillingMode: PAY_PER_REQUEST
 
   ApiKeysTable:
@@ -143,38 +125,47 @@ Resources:
     Properties:
       TableName: !Sub "zuno-apikeys-${AWS::Region}-${AWS::AccountId}"
       AttributeDefinitions:
-        - AttributeName: keyId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: keyId
-          KeyType: HASH
+        - { AttributeName: keyId, AttributeType: S }
+        - { AttributeName: apiKeyHash, AttributeType: S }
+      KeySchema: [{ AttributeName: keyId, KeyType: HASH }]
       BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: ApiKeyHashIndex
+          KeySchema: [{ AttributeName: apiKeyHash, KeyType: HASH }]
+          Projection: { ProjectionType: ALL }
 
   ProjectsTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub "zuno-projects-${AWS::Region}-${AWS::AccountId}"
       AttributeDefinitions:
-        - AttributeName: projectId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: projectId
-          KeyType: HASH
+        - { AttributeName: projectId, AttributeType: S }
+        - { AttributeName: ownerId, AttributeType: S }
+      KeySchema: [{ AttributeName: projectId, KeyType: HASH }]
       BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: OwnerIdIndex
+          KeySchema: [{ AttributeName: ownerId, KeyType: HASH }]
+          Projection: { ProjectionType: ALL }
 
-  ZunoS3Bucket:
+  # -------- S3 Bucket --------
+  ZunoBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub "zuno-bucket-${AWS::Region}-${AWS::AccountId}"
       CorsConfiguration:
         CorsRules:
-          - AllowedOrigins:
-              - '*'
-            AllowedHeaders:
-              - '*'
-            AllowedMethods:
-              - GET
-              - PUT
-              - POST
-              - DELETE
-              - HEAD
+          - AllowedOrigins: ['*']
+            AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
+
+Parameters:
+  PineconeApiKey: { Type: String }
+  PineconeIndexName: { Type: String }
+  PineconeEnvironment: { Type: String }
+  GeminiApiKey: { Type: String }
+
+Outputs:
+  HttpApiUrl:
+    Description: Base URL for the HttpApi
+    Value: !Sub "https://${ZunoHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
