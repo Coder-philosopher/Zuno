@@ -11,4 +11,4 @@ RUN npm ci --only=production
 COPY . .
 
 # CMD must be module.function
-CMD ["aiChatHandler.handler"]
+CMD ["handlers/aiChatHandler.handler"]

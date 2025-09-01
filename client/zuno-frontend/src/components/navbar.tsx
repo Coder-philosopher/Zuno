@@ -73,9 +73,9 @@ const Navbar = () => {
 
         {/* Navigation */}
         <nav className="hidden md:flex gap-10 text-[16px] font-medium text-gray-300">
-          <Link href="#product" className="hover:text-white transition">Product</Link>
-          <Link href="#pricing" className="hover:text-white transition">Pricing</Link>
-          <Link href="#contact" className="hover:text-white transition">Contact</Link>
+          <Link href="/product" className="hover:text-white transition">Product</Link>
+          <Link href="/pricing" className="hover:text-white transition">Pricing</Link>
+          <Link href="/contact" className="hover:text-white transition">Contact</Link>
         </nav>
 
         {/* Actions */}

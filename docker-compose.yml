@@ -1,10 +1,14 @@
+version: "3.8"
+
 services:
   dynamodb:
     image: amazon/dynamodb-local
     container_name: dynamodb-local
     ports:
       - "8000:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb"
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data"
+    volumes:
+      - ./dynamodb-data:/home/dynamodblocal/data
     restart: unless-stopped
 
   minio:
@@ -17,4 +21,6 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
+    volumes:
+      - ./minio-data:/data
     restart: unless-stopped

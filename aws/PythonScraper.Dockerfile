@@ -5,4 +5,4 @@ RUN yum install -y gcc gcc-c++ libffi-devel libxml2-devel libxslt-devel python3-
 RUN pip install --upgrade pip && pip install scrapy boto3
 
 COPY . .
-CMD ["scrapingHandler.handler"]
+CMD ["handlers/scrapingHandler.handler"]

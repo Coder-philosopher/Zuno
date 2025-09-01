@@ -12,11 +12,11 @@ Globals:
         PINECONE_INDEX_NAME: !Ref PineconeIndexName
         PINECONE_ENVIRONMENT: !Ref PineconeEnvironment
         GEMINI_API_KEY: !Ref GeminiApiKey
-        APIKEYS_TABLE: !Sub "zuno-apikeys-${AWS::Region}-${AWS::AccountId}"
-        PROJECTS_TABLE: !Sub "zuno-projects-${AWS::Region}-${AWS::AccountId}"
-        QUERIES_TABLE: !Sub "zuno-queries-${AWS::Region}-${AWS::AccountId}"
-        USERS_TABLE: !Sub "zuno-users-${AWS::Region}-${AWS::AccountId}"
-        S3_BUCKET_NAME: !Ref ZunoBucket
+        APIKEYS_TABLE: !Sub "zuno-apikeys-local"
+        PROJECTS_TABLE: !Sub "zuno-projects-local"
+        QUERIES_TABLE: !Sub "zuno-queries-local"
+        USERS_TABLE: !Sub "zuno-users-local"
+        S3_BUCKET_NAME: !Ref zunobucket
         EMBEDDING_LAMBDA_NAME: !Ref EmbeddingFunction
 
 Resources:
@@ -51,6 +51,30 @@ Resources:
       - DynamoDBCrudPolicy: { TableName: !Ref ProjectsTable }
       - DynamoDBCrudPolicy: { TableName: !Ref ApiKeysTable }
       - DynamoDBCrudPolicy: { TableName: !Ref QueriesTable }
+
+  ProjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Events:
+        ProjectApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ZunoHttpApi
+            Path: /api/create-projectId
+            Method: POST
+    Metadata:
+      DockerTag: ai-project-lambda
+      DockerContext: .
+      Dockerfile: CreateProject.Dockerfile
+      DockerCMD: ["handlers/CreateProjectHandler.handler"]
+    Policies:
+      - DynamoDBCrudPolicy: { TableName: !Ref UsersTable }
+      - DynamoDBCrudPolicy: { TableName: !Ref ProjectsTable }
+      - DynamoDBCrudPolicy: { TableName: !Ref ApiKeysTable }
+      - DynamoDBCrudPolicy: { TableName: !Ref QueriesTable }
+          
+    
 
   ChatFunction:
     Type: AWS::Serverless::Function
